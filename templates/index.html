@@ -1,0 +1,1219 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mikele Gelato - Dashboard de Control</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
+    <style>
+        :root {
+            --bg-primary: #0b0f19;
+            --bg-secondary: #131a26;
+            --bg-card: #1c2533;
+            --border-color: #2a3649;
+            --text-primary: #f1f5f9;
+            --text-secondary: #94a3b8;
+            --accent-purple: #8b5cf6;
+            --accent-blue: #3b82f6;
+            --accent-pink: #ec4899;
+            --accent-green: #10b981;
+            --accent-orange: #f59e0b;
+            --accent-red: #ef4444;
+            --glass-bg: rgba(28, 37, 51, 0.7);
+            --glass-border: rgba(255, 255, 255, 0.05);
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        body {
+            background-color: var(--bg-primary);
+            color: var(--text-primary);
+            min-height: 100vh;
+            display: flex;
+            overflow-x: hidden;
+        }
+
+        /* Sidebar */
+        .sidebar {
+            width: 260px;
+            background-color: var(--bg-secondary);
+            border-right: 1px solid var(--border-color);
+            display: flex;
+            flex-direction: column;
+            padding: 24px;
+            height: 100vh;
+            position: fixed;
+            z-index: 100;
+        }
+
+        .logo-container {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 40px;
+        }
+
+        .logo-icon {
+            font-size: 28px;
+            background: linear-gradient(135deg, var(--accent-pink), var(--accent-purple));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .logo-text {
+            font-size: 20px;
+            font-weight: 800;
+            letter-spacing: 1px;
+            background: linear-gradient(135deg, #ffffff, #94a3b8);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .menu-list {
+            list-style: none;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            flex-grow: 1;
+        }
+
+        .menu-item a {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            padding: 12px 16px;
+            color: var(--text-secondary);
+            text-decoration: none;
+            font-weight: 500;
+            border-radius: 8px;
+            transition: all 0.3s ease;
+        }
+
+        .menu-item a:hover, .menu-item.active a {
+            color: #ffffff;
+            background-color: var(--bg-card);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        }
+
+        .menu-item a i {
+            font-size: 18px;
+            width: 20px;
+            text-align: center;
+        }
+
+        .menu-item.active a i {
+            color: var(--accent-purple);
+        }
+
+        .sidebar-footer {
+            border-top: 1px solid var(--border-color);
+            padding-top: 20px;
+            font-size: 11px;
+            color: var(--text-secondary);
+            text-align: center;
+        }
+
+        /* Main Content */
+        .main-content {
+            margin-left: 260px;
+            flex-grow: 1;
+            padding: 40px;
+            max-width: 1400px;
+        }
+
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 40px;
+        }
+
+        .header-title h2 {
+            font-size: 28px;
+            font-weight: 800;
+            letter-spacing: -0.5px;
+        }
+
+        .header-title p {
+            color: var(--text-secondary);
+            margin-top: 4px;
+            font-size: 14px;
+        }
+
+        .header-actions {
+            display: flex;
+            gap: 12px;
+        }
+
+        /* Buttons */
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            padding: 12px 24px;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            border: none;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, var(--accent-purple), var(--accent-blue));
+            color: white;
+            box-shadow: 0 4px 15px rgba(139, 92, 246, 0.3);
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(139, 92, 246, 0.4);
+        }
+
+        .btn-secondary {
+            background-color: var(--bg-card);
+            border: 1px solid var(--border-color);
+            color: var(--text-primary);
+        }
+
+        .btn-secondary:hover {
+            background-color: var(--border-color);
+        }
+
+        .btn-danger {
+            background: linear-gradient(135deg, var(--accent-orange), var(--accent-red));
+            color: white;
+            box-shadow: 0 4px 15px rgba(239, 68, 68, 0.2);
+        }
+
+        .btn-danger:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(239, 68, 68, 0.3);
+        }
+
+        /* Cards Grid */
+        .metrics-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 24px;
+            margin-bottom: 40px;
+        }
+
+        .metric-card {
+            background: var(--glass-bg);
+            backdrop-filter: blur(10px);
+            border: 1px solid var(--glass-border);
+            border-radius: 16px;
+            padding: 24px;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+            position: relative;
+            overflow: hidden;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+            transition: all 0.3s ease;
+        }
+
+        .metric-card::after {
+            content: '';
+            position: absolute;
+            width: 80px;
+            height: 80px;
+            background: radial-gradient(circle, var(--accent-purple) 0%, transparent 70%);
+            top: -20px;
+            right: -20px;
+            opacity: 0.15;
+            transition: all 0.3s ease;
+        }
+
+        .metric-card:hover {
+            transform: translateY(-5px);
+            border-color: rgba(255, 255, 255, 0.1);
+        }
+
+        .metric-icon {
+            width: 44px;
+            height: 44px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+        }
+
+        .metric-info h3 {
+            font-size: 28px;
+            font-weight: 800;
+            letter-spacing: -0.5px;
+            margin-bottom: 4px;
+        }
+
+        .metric-info p {
+            color: var(--text-secondary);
+            font-size: 13px;
+            font-weight: 500;
+        }
+
+        /* Drag & Drop Area */
+        .upload-section {
+            background: var(--glass-bg);
+            border: 2px dashed var(--border-color);
+            border-radius: 16px;
+            padding: 40px;
+            text-align: center;
+            cursor: pointer;
+            margin-bottom: 40px;
+            transition: all 0.3s ease;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .upload-section:hover, .upload-section.dragover {
+            border-color: var(--accent-purple);
+            background-color: rgba(139, 92, 246, 0.05);
+        }
+
+        .upload-icon {
+            font-size: 48px;
+            color: var(--text-secondary);
+            background: linear-gradient(135deg, var(--accent-purple), var(--accent-blue));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 8px;
+            transition: transform 0.3s ease;
+        }
+
+        .upload-section:hover .upload-icon {
+            transform: translateY(-5px);
+        }
+
+        .upload-text h4 {
+            font-size: 16px;
+            font-weight: 600;
+            margin-bottom: 4px;
+        }
+
+        .upload-text p {
+            font-size: 12px;
+            color: var(--text-secondary);
+        }
+
+        #fileInput {
+            display: none;
+        }
+
+        /* Dashboard Content Layout */
+        .dashboard-grid {
+            display: grid;
+            grid-template-columns: 2fr 1fr;
+            gap: 32px;
+            margin-bottom: 40px;
+        }
+
+        @media (max-width: 1024px) {
+            .dashboard-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .panel-card {
+            background-color: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: 16px;
+            padding: 28px;
+            box-shadow: 0 4px 25px rgba(0, 0, 0, 0.1);
+        }
+
+        .panel-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 24px;
+        }
+
+        .panel-header h3 {
+            font-size: 18px;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        /* Tables */
+        .table-wrapper {
+            overflow-x: auto;
+            max-height: 500px;
+            overflow-y: auto;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            text-align: left;
+            font-size: 13px;
+        }
+
+        th {
+            background-color: rgba(28, 37, 51, 0.4);
+            color: var(--text-secondary);
+            font-weight: 600;
+            padding: 14px 16px;
+            border-bottom: 1px solid var(--border-color);
+            position: sticky;
+            top: 0;
+            z-index: 10;
+        }
+
+        td {
+            padding: 14px 16px;
+            border-bottom: 1px solid var(--border-color);
+            color: var(--text-primary);
+        }
+
+        tr:hover td {
+            background-color: rgba(255, 255, 255, 0.02);
+        }
+
+        .badge {
+            display: inline-flex;
+            align-items: center;
+            padding: 4px 10px;
+            border-radius: 12px;
+            font-size: 11px;
+            font-weight: 700;
+        }
+
+        .badge-danger {
+            background-color: rgba(239, 68, 68, 0.1);
+            color: var(--accent-red);
+        }
+
+        .badge-warning {
+            background-color: rgba(245, 158, 11, 0.1);
+            color: var(--accent-orange);
+        }
+
+        .badge-success {
+            background-color: rgba(16, 185, 129, 0.1);
+            color: var(--accent-green);
+        }
+
+        .badge-info {
+            background-color: rgba(59, 130, 246, 0.1);
+            color: var(--accent-blue);
+        }
+
+        /* Alerts and Alerts Box */
+        .alerts-wrapper {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .alert-box {
+            padding: 14px 18px;
+            border-radius: 8px;
+            font-size: 13px;
+            line-height: 1.5;
+            display: flex;
+            align-items: flex-start;
+            gap: 12px;
+            border-left: 4px solid transparent;
+        }
+
+        .alert-box-critical {
+            background-color: rgba(239, 68, 68, 0.05);
+            border-left-color: var(--accent-red);
+            color: #fca5a5;
+        }
+
+        .alert-box-high {
+            background-color: rgba(245, 158, 11, 0.05);
+            border-left-color: var(--accent-orange);
+            color: #fde047;
+        }
+
+        .alert-box-medium {
+            background-color: rgba(59, 130, 246, 0.05);
+            border-left-color: var(--accent-blue);
+            color: #93c5fd;
+        }
+
+        /* Charts panel */
+        .charts-container {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 24px;
+            margin-bottom: 40px;
+        }
+
+        @media (max-width: 768px) {
+            .charts-container {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        /* Floating action timezone banner */
+        .alert-banner {
+            background: linear-gradient(135deg, rgba(245, 158, 11, 0.15) 0%, rgba(239, 68, 68, 0.15) 100%);
+            border: 1px solid rgba(245, 158, 11, 0.3);
+            border-radius: 12px;
+            padding: 16px 24px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 30px;
+            display: none; /* Hidden by default */
+        }
+
+        .banner-text {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+        }
+
+        .banner-text i {
+            font-size: 24px;
+            color: var(--accent-orange);
+        }
+
+        .banner-text p {
+            font-size: 14px;
+            font-weight: 500;
+        }
+
+        /* Email Preview Section */
+        .preview-section {
+            margin-top: 40px;
+            display: none;
+        }
+
+        .preview-container {
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            background-color: white;
+            height: 600px;
+            overflow: hidden;
+            margin-top: 16px;
+        }
+
+        #emailPreviewIframe {
+            width: 100%;
+            height: 100%;
+            border: none;
+        }
+
+        /* Loading Overlay */
+        .loading-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(11, 15, 25, 0.8);
+            backdrop-filter: blur(5px);
+            z-index: 1000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-direction: column;
+            gap: 16px;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s ease;
+        }
+
+        .loading-overlay.active {
+            opacity: 1;
+            pointer-events: auto;
+        }
+
+        .spinner {
+            width: 50px;
+            height: 50px;
+            border: 4px solid var(--border-color);
+            border-top: 4px solid var(--accent-purple);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        /* Status messages */
+        .status-message {
+            position: fixed;
+            bottom: 24px;
+            right: 24px;
+            padding: 16px 24px;
+            border-radius: 8px;
+            color: white;
+            font-weight: 600;
+            font-size: 14px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+            transform: translateY(150%);
+            transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            z-index: 1000;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .status-message.show {
+            transform: translateY(0);
+        }
+
+        .status-success {
+            background-color: var(--accent-green);
+        }
+
+        .status-error {
+            background-color: var(--accent-red);
+        }
+    </style>
+</head>
+<body>
+    <!-- Loading Overlay -->
+    <div class="loading-overlay" id="loadingOverlay">
+        <div class="spinner"></div>
+        <h4 id="loadingText">Cargando datos...</h4>
+    </div>
+
+    <!-- Status Message -->
+    <div class="status-message" id="statusMessage">
+        <i class="fa-solid" id="statusIcon"></i>
+        <span id="statusMessageText">Operación realizada con éxito</span>
+    </div>
+
+    <!-- Sidebar -->
+    <div class="sidebar">
+        <div class="logo-container">
+            <i class="fa-solid fa-ice-cream logo-icon"></i>
+            <span class="logo-text">MIKELE POS</span>
+        </div>
+        <ul class="menu-list">
+            <li class="menu-item active">
+                <a href="#"><i class="fa-solid fa-chart-line"></i> Dashboard</a>
+            </li>
+        </ul>
+        <div class="sidebar-footer">
+            <p>Heladería Mikele v1.2</p>
+            <p>Control de Calidad y Ventas</p>
+        </div>
+    </div>
+
+    <!-- Main Content -->
+    <div class="main-content">
+        <!-- Timezone Offset Warning Banner -->
+        <div class="alert-banner" id="timezoneBanner">
+            <div class="banner-text">
+                <i class="fa-solid fa-triangle-exclamation"></i>
+                <div>
+                    <p id="bannerTitle"><b>🚨 Desfase de Zona Horaria Detectado</b></p>
+                    <p id="bannerDesc">Hay registros ingresados con la fecha de hoy, pero por la diferencia horaria corresponden al cierre de ayer.</p>
+                </div>
+            </div>
+            <button class="btn btn-secondary" onclick="fixTimezone()">Corregir Fechas</button>
+        </div>
+
+        <header>
+            <div class="header-title">
+                <h2>Control de Inventario y Ventas</h2>
+                <p id="headerSub">Cargando último estado del servidor...</p>
+            </div>
+            <div class="header-actions">
+                <button class="btn btn-secondary" onclick="fetchStatus()"><i class="fa-solid fa-arrows-rotate"></i> Recargar</button>
+                <button class="btn btn-primary" id="btnSendEmail" style="display: none;" onclick="sendEmail()"><i class="fa-solid fa-paper-plane"></i> Enviar por Correo</button>
+            </div>
+        </header>
+
+        <!-- Metrics Cards -->
+        <div class="metrics-grid">
+            <div class="metric-card">
+                <div class="metric-icon" style="background-color: rgba(139, 92, 246, 0.1); color: var(--accent-purple);">
+                    <i class="fa-solid fa-money-bill-wave"></i>
+                </div>
+                <div class="metric-info">
+                    <h3 id="cardVentas">L 0.00</h3>
+                    <p>Ventas Totales</p>
+                </div>
+            </div>
+            <div class="metric-card">
+                <div class="metric-icon" style="background-color: rgba(16, 185, 129, 0.1); color: var(--accent-green);">
+                    <i class="fa-solid fa-scale-balanced"></i>
+                </div>
+                <div class="metric-info">
+                    <h3 id="cardConsumo">0.0 kg</h3>
+                    <p>Consumo Total</p>
+                </div>
+            </div>
+            <div class="metric-card">
+                <div class="metric-icon" style="background-color: rgba(236, 72, 153, 0.1); color: var(--accent-pink);">
+                    <i class="fa-solid fa-percent"></i>
+                </div>
+                <div class="metric-info">
+                    <h3 id="cardMargen">0.0%</h3>
+                    <p>Margen de Utilidad</p>
+                </div>
+            </div>
+            <div class="metric-card">
+                <div class="metric-icon" style="background-color: rgba(59, 130, 246, 0.1); color: var(--accent-blue);">
+                    <i class="fa-solid fa-calculator"></i>
+                </div>
+                <div class="metric-info">
+                    <h3 id="cardPrecioKg">L 0.00</h3>
+                    <p>Precio Promedio / KG</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Drag & Drop Uploader -->
+        <div class="upload-section" id="dropArea">
+            <i class="fa-solid fa-cloud-arrow-up upload-icon"></i>
+            <div class="upload-text">
+                <h4>Cargar Archivo de Ventas</h4>
+                <p>Arrastra aquí tu archivo CSV (ej. block6098) o haz clic para seleccionarlo</p>
+            </div>
+            <input type="file" id="fileInput" accept=".csv" onchange="handleFileSelect(event)">
+            <button class="btn btn-secondary" onclick="document.getElementById('fileInput').click()">Seleccionar CSV</button>
+        </div>
+
+        <!-- Interactive Charts Panel (Initially hidden until CSV processed) -->
+        <div class="charts-container" id="chartsContainer" style="display: none;">
+            <div class="panel-card">
+                <div class="panel-header">
+                    <h3><i class="fa-solid fa-chart-bar" style="color: var(--accent-purple);"></i> Consumo por Sabor (kg)</h3>
+                </div>
+                <div id="chartConsumo"></div>
+            </div>
+            <div class="panel-card">
+                <div class="panel-header">
+                    <h3><i class="fa-solid fa-weight-scale" style="color: var(--accent-pink);"></i> Peso Promedio/Porción (g)</h3>
+                </div>
+                <div id="chartPesoPromedio"></div>
+            </div>
+        </div>
+
+        <!-- Dashboard Main Panels -->
+        <div class="dashboard-grid">
+            <!-- Left Side: Table -->
+            <div class="panel-card">
+                <div class="panel-header">
+                    <h3 id="tableTitle"><i class="fa-solid fa-table" style="color: var(--accent-blue);"></i> Inventario de Cierre</h3>
+                </div>
+                <div class="table-wrapper">
+                    <table>
+                        <thead>
+                            <tr id="tableHeaders">
+                                <th>Sabor</th>
+                                <th>Peso Inicial (g)</th>
+                                <th>Recepción (g)</th>
+                                <th>Peso Final (g)</th>
+                                <th>Consumo (g)</th>
+                            </tr>
+                        </thead>
+                        <tbody id="inventoryTableBody">
+                            <tr>
+                                <td colspan="5" style="text-align: center; color: var(--text-secondary);">Cargando inventario...</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Right Side: Production and Alerts -->
+            <div style="display: flex; flex-direction: column; gap: 32px;">
+                <!-- Production Urgent Alerts -->
+                <div class="panel-card">
+                    <div class="panel-header">
+                        <h3><i class="fa-solid fa-industry" style="color: var(--accent-red);"></i> Producción Urgente</h3>
+                    </div>
+                    <div class="table-wrapper" style="max-height: 230px;">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Sabor</th>
+                                    <th>Stock Actual</th>
+                                    <th>Prioridad</th>
+                                </tr>
+                            </thead>
+                            <tbody id="productionTableBody">
+                                <tr>
+                                    <td colspan="3" style="text-align: center; color: var(--text-secondary);">Cargando alertas...</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Anomaly Alerts Panel -->
+                <div class="panel-card">
+                    <div class="panel-header">
+                        <h3><i class="fa-solid fa-triangle-exclamation" style="color: var(--accent-orange);"></i> Inconsistencias</h3>
+                    </div>
+                    <div class="alerts-wrapper" id="inconsistenciasContainer">
+                        <div style="color: var(--text-secondary); text-align: center; font-size: 13px;">Ninguna inconsistencia detectada.</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Email HTML Preview Section -->
+        <div class="panel-card preview-section" id="previewSection">
+            <div class="panel-header">
+                <h3><i class="fa-solid fa-envelope-open-text" style="color: var(--accent-green);"></i> Vista Previa del Correo de Reporte</h3>
+                <span class="badge badge-success">Listo para Enviar</span>
+            </div>
+            <div class="preview-container">
+                <iframe id="emailPreviewIframe" title="Email Report Preview"></iframe>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const API_URL = "http://127.0.0.1:8000";
+        let processedData = null;
+        let chart1 = null;
+        let chart2 = null;
+
+        // Initialize drag & drop
+        const dropArea = document.getElementById('dropArea');
+
+        ['dragenter', 'dragover'].forEach(eventName => {
+            dropArea.addEventListener(eventName, (e) => {
+                e.preventDefault();
+                dropArea.classList.add('dragover');
+            }, false);
+        });
+
+        ['dragleave', 'drop'].forEach(eventName => {
+            dropArea.addEventListener(eventName, (e) => {
+                e.preventDefault();
+                dropArea.classList.remove('dragover');
+            }, false);
+        });
+
+        dropArea.addEventListener('drop', (e) => {
+            const dt = e.dataTransfer;
+            const files = dt.files;
+            if (files.length > 0) {
+                uploadCSV(files[0]);
+            }
+        });
+
+        window.onload = function() {
+            fetchStatus();
+        };
+
+        // Show status message
+        function showStatus(text, type = 'success') {
+            const msg = document.getElementById('statusMessage');
+            const icon = document.getElementById('statusIcon');
+            const textSpan = document.getElementById('statusMessageText');
+            
+            textSpan.textContent = text;
+            msg.className = `status-message show status-${type}`;
+            
+            if (type === 'success') {
+                icon.className = 'fa-solid fa-circle-check';
+            } else {
+                icon.className = 'fa-solid fa-circle-xmark';
+            }
+            
+            setTimeout(() => {
+                msg.classList.remove('show');
+            }, 4000);
+        }
+
+        // Show Loading Overlay
+        function toggleLoading(show, text = "Cargando datos...") {
+            const overlay = document.getElementById('loadingOverlay');
+            document.getElementById('loadingText').textContent = text;
+            if (show) {
+                overlay.classList.add('active');
+            } else {
+                overlay.classList.remove('active');
+            }
+        }
+
+        // Fetch Supabase status
+        async function fetchStatus() {
+            toggleLoading(true, "Conectando con Supabase...");
+            try {
+                const response = await fetch(`${API_URL}/api/status`);
+                const data = await response.json();
+                
+                if (data.error) {
+                    showStatus(data.error, 'error');
+                    toggleLoading(false);
+                    return;
+                }
+
+                // Update title with latest reported date
+                const dateParts = data.fecha_mas_reciente.split('-');
+                const latestDateFormatted = `${dateParts[2]}/${dateParts[1]}/${dateParts[0]}`;
+                document.getElementById('headerSub').textContent = `Inventario cargado: ${latestDateFormatted}. Listo para analizar ventas.`;
+
+                // Handle timezone banner
+                if (data.today_has_records) {
+                    document.getElementById('timezoneBanner').style.display = 'flex';
+                } else {
+                    document.getElementById('timezoneBanner').style.display = 'none';
+                }
+
+                // Render current stock table
+                const tbody = document.getElementById('inventoryTableBody');
+                tbody.innerHTML = '';
+                
+                // Sort by flavor name
+                data.inventory.sort((a, b) => a.sabor.localeCompare(b.sabor));
+                
+                data.inventory.forEach(item => {
+                    const tr = document.createElement('tr');
+                    tr.innerHTML = `
+                        <td><strong>${item.sabor}</strong></td>
+                        <td>${item.peso_anterior !== null ? item.peso_anterior.toLocaleString() + 'g' : '<span style="color:var(--text-secondary)">-</span>'}</td>
+                        <td><span style="color:var(--text-secondary)">-</span></td>
+                        <td>${item.peso_final.toLocaleString()}g</td>
+                        <td><span style="color:var(--text-secondary)">-</span></td>
+                    `;
+                    tbody.appendChild(tr);
+                });
+
+                // Render production alerts
+                const pbody = document.getElementById('productionTableBody');
+                pbody.innerHTML = '';
+                
+                if (data.production_alerts.length === 0) {
+                    pbody.innerHTML = '<tr><td colspan="3" style="text-align: center; color: var(--accent-green);"><b>✅ Stock Completo</b></td></tr>';
+                } else {
+                    data.production_alerts.forEach(p => {
+                        const tr = document.createElement('tr');
+                        const badgeClass = p.estado.includes('AGOTADO') || p.estado.includes('CRÍTICO') ? 'badge-danger' : 'badge-warning';
+                        tr.innerHTML = `
+                            <td><strong>${p.sabor}</strong></td>
+                            <td>${p.peso.toLocaleString()}g</td>
+                            <td><span class="badge ${badgeClass}">${p.estado.substring(2)}</span></td>
+                        `;
+                        pbody.appendChild(tr);
+                    });
+                }
+
+                showStatus("Datos de Supabase sincronizados");
+            } catch (err) {
+                console.error(err);
+                showStatus("Error al conectar con el servidor", 'error');
+            }
+            toggleLoading(false);
+        }
+
+        // Correct timezone dates
+        async function fixTimezone() {
+            toggleLoading(true, "Corrigiendo fechas en Supabase...");
+            try {
+                const response = await fetch(`${API_URL}/api/fix-dates`, { method: 'POST' });
+                const data = await response.json();
+                if (data.success) {
+                    showStatus(data.message);
+                    fetchStatus();
+                } else {
+                    showStatus("No se pudieron corregir las fechas", 'error');
+                }
+            } catch (err) {
+                showStatus("Error de conexión", 'error');
+            }
+            toggleLoading(false);
+        }
+
+        // Upload and process CSV file
+        function handleFileSelect(e) {
+            const files = e.target.files;
+            if (files.length > 0) {
+                uploadCSV(files[0]);
+            }
+        }
+
+        async function uploadCSV(file) {
+            toggleLoading(true, "Analizando ventas y consumos...");
+            const formData = new FormData();
+            formData.append("file", file);
+
+            try {
+                const response = await fetch(`${API_URL}/api/process`, {
+                    method: 'POST',
+                    body: formData
+                });
+                
+                if (!response.ok) {
+                    const errDetail = await response.json();
+                    showStatus(errDetail.detail || "Error al procesar archivo", 'error');
+                    toggleLoading(false);
+                    return;
+                }
+
+                const data = await response.json();
+                processedData = data;
+
+                // Update Title
+                document.getElementById('headerSub').textContent = `Análisis de Ventas e Inventario completado para el ${data.fecha_reporte_formateada} (${data.dia_nombre})`;
+
+                // Enable Send Email Button
+                document.getElementById('btnSendEmail').style.display = 'inline-flex';
+
+                // Update Metric Cards
+                document.getElementById('cardVentas').textContent = `L ${data.metrics.total_ventas.toLocaleString()}`;
+                document.getElementById('cardConsumo').textContent = `${data.metrics.total_consumo_kg} kg`;
+                document.getElementById('cardMargen').textContent = `${data.metrics.margen_pct}%`;
+                document.getElementById('cardPrecioKg').textContent = `L ${data.metrics.precio_promedio_kg.toLocaleString()}`;
+
+                // Update Table Header and Body
+                const thead = document.getElementById('tableHeaders');
+                thead.innerHTML = `
+                    <th>Sabor</th>
+                    <th>Peso Anterior (g)</th>
+                    <th>Recepción (g)</th>
+                    <th>Peso Actual (g)</th>
+                    <th>Consumo (g)</th>
+                    <th>Uds. Vendidas</th>
+                    <th>Porción Prom (g)</th>
+                `;
+
+                const tbody = document.getElementById('inventoryTableBody');
+                tbody.innerHTML = '';
+
+                data.consumption.forEach(item => {
+                    const tr = document.createElement('tr');
+                    const color = item.consumo < 0 ? 'style="color:var(--accent-red); font-weight: bold;"' : '';
+                    
+                    let pProm = "-";
+                    let badgeClass = "badge-success";
+                    let cpuStatus = "OK";
+                    
+                    if (item.g_unidad !== null) {
+                        pProm = `${item.g_unidad}g`;
+                        if (item.status_cpu === "Alto") {
+                            badgeClass = "badge-danger";
+                            cpuStatus = "ALTO";
+                        } else if (item.status_cpu === "Medio") {
+                            badgeClass = "badge-warning";
+                            cpuStatus = "MEDIO";
+                        }
+                    }
+
+                    tr.innerHTML = `
+                        <td><strong>${item.sabor}</strong></td>
+                        <td>${item.peso_anterior.toLocaleString()}g</td>
+                        <td>${item.recepcion.toLocaleString()}g</td>
+                        <td>${item.peso_actual.toLocaleString()}g</td>
+                        <td ${color}><strong>${item.consumo.toLocaleString()}g</strong></td>
+                        <td>${item.uds_vendidas}</td>
+                        <td>${item.g_unidad !== null ? `<b>${pProm}</b> <span class="badge ${badgeClass}">${cpuStatus}</span>` : '<span style="color:var(--text-secondary)">-</span>'}</td>
+                    `;
+                    tbody.appendChild(tr);
+                });
+
+                // Update Production Alerts table
+                const pbody = document.getElementById('productionTableBody');
+                pbody.innerHTML = '';
+                
+                if (data.production.length === 0) {
+                    pbody.innerHTML = '<tr><td colspan="3" style="text-align: center; color: var(--accent-green);"><b>✅ Stock Completo</b></td></tr>';
+                } else {
+                    data.production.forEach(p => {
+                        const tr = document.createElement('tr');
+                        const badgeClass = p.estado.includes('AGOTADO') || p.estado.includes('CRÍTICO') ? 'badge-danger' : 'badge-warning';
+                        tr.innerHTML = `
+                            <td><strong>${p.sabor}</strong></td>
+                            <td>${p.peso_g.toLocaleString()}g</td>
+                            <td><span class="badge ${badgeClass}">${p.estado.substring(2)}</span></td>
+                        `;
+                        pbody.appendChild(tr);
+                    });
+                }
+
+                // Update Inconsistencies List
+                const incContainer = document.getElementById('inconsistenciasContainer');
+                incContainer.innerHTML = '';
+                
+                if (data.inconsistencias.length === 0) {
+                    incContainer.innerHTML = '<div style="color: var(--accent-green); text-align: center; font-size: 13px; font-weight: bold;"><b>✅ Sin inconsistencias detectadas</b></div>';
+                } else {
+                    data.inconsistencias.forEach(inc => {
+                        const div = document.createElement('div');
+                        let cls = "alert-box-medium";
+                        if (inc.nivel.includes("CRÍTICA")) cls = "alert-box-critical";
+                        else if (inc.nivel.includes("ALTA") || inc.nivel.includes("MEDIA")) cls = "alert-box-high";
+                        
+                        div.className = `alert-box ${cls}`;
+                        div.innerHTML = `
+                            <i class="fa-solid fa-circle-exclamation"></i>
+                            <div>
+                                <strong>${inc.nivel}</strong>: ${inc.msg}
+                            </div>
+                        `;
+                        incContainer.appendChild(div);
+                    });
+                }
+
+                // Render Charts
+                document.getElementById('chartsContainer').style.display = 'grid';
+                renderCharts(data.consumption, data.portion_weights);
+
+                // Load Email HTML Preview
+                document.getElementById('previewSection').style.display = 'block';
+                const iframe = document.getElementById('emailPreviewIframe');
+                const doc = iframe.contentDocument || iframe.contentWindow.document;
+                doc.open();
+                doc.write(data.html_report);
+                doc.close();
+
+                showStatus("Análisis financiero y de consumo generado");
+            } catch (err) {
+                console.error(err);
+                showStatus("Error al procesar el archivo CSV", 'error');
+            }
+            toggleLoading(false);
+        }
+
+        // Render ApexCharts
+        function renderCharts(consumptionData, portionData) {
+            // Filter flavours with positive consumption
+            const validCons = consumptionData.filter(d => d.consumo > 0).slice(0, 10);
+            
+            const consumptionFlavours = validCons.map(d => d.sabor);
+            const consumptionValues = validCons.map(d => parseFloat((d.consumo / 1000).toFixed(2)));
+
+            // Portion weight chart
+            const portionFlavours = portionData.map(d => d.sabor);
+            const portionValues = portionData.map(d => d.peso_promedio_g);
+
+            // Destroy existing charts if any
+            if (chart1) chart1.destroy();
+            if (chart2) chart2.destroy();
+
+            // Chart 1: Consumo por Sabor
+            const options1 = {
+                series: [{
+                    name: 'Consumo (kg)',
+                    data: consumptionValues
+                }],
+                chart: {
+                    type: 'bar',
+                    height: 300,
+                    toolbar: { show: false },
+                    background: 'transparent'
+                },
+                theme: { mode: 'dark' },
+                colors: [varColor('--accent-purple')],
+                plotOptions: {
+                    bar: {
+                        borderRadius: 6,
+                        horizontal: true,
+                        barHeight: '60%'
+                    }
+                },
+                grid: { borderColor: varColor('--border-color') },
+                xaxis: {
+                    categories: consumptionFlavours,
+                    labels: { style: { colors: varColor('--text-secondary') } }
+                },
+                yaxis: {
+                    labels: { style: { colors: varColor('--text-secondary') } }
+                }
+            };
+            chart1 = new ApexCharts(document.querySelector("#chartConsumo"), options1);
+            chart1.render();
+
+            // Chart 2: Peso Promedio por Porción
+            const options2 = {
+                series: [{
+                    name: 'Peso/Porción (g)',
+                    data: portionValues
+                }],
+                chart: {
+                    type: 'bar',
+                    height: 300,
+                    toolbar: { show: false },
+                    background: 'transparent'
+                },
+                theme: { mode: 'dark' },
+                colors: [varColor('--accent-pink')],
+                plotOptions: {
+                    bar: {
+                        borderRadius: 4,
+                        columnWidth: '50%'
+                    }
+                },
+                grid: { borderColor: varColor('--border-color') },
+                xaxis: {
+                    categories: portionFlavours,
+                    labels: { style: { colors: varColor('--text-secondary') } }
+                },
+                yaxis: {
+                    labels: { style: { colors: varColor('--text-secondary') } }
+                },
+                annotations: {
+                    yaxis: [{
+                        y: 120,
+                        borderColor: varColor('--accent-green'),
+                        label: {
+                            borderColor: varColor('--accent-green'),
+                            style: { color: '#fff', background: varColor('--accent-green') },
+                            text: 'Límite Objetivo (120g)'
+                        }
+                    }]
+                }
+            };
+            chart2 = new ApexCharts(document.querySelector("#chartPesoPromedio"), options2);
+            chart2.render();
+        }
+
+        // Helper to get css variables in JS
+        function varColor(varName) {
+            return getComputedStyle(document.documentElement).getPropertyValue(varName).trim();
+        }
+
+        // Send HTML Report via email
+        async function sendEmail() {
+            if (!processedData) return;
+            
+            toggleLoading(true, "Enviando reporte a control@yoops.hn...");
+            try {
+                const response = await fetch(`${API_URL}/api/send-email`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        html: processedData.html_report,
+                        fecha: processedData.fecha_reporte_formateada
+                    })
+                });
+
+                const res = await response.json();
+                if (res.success) {
+                    showStatus("Reporte diario enviado exitosamente por correo");
+                } else {
+                    showStatus(`Error al enviar: ${res.error}`, 'error');
+                }
+            } catch (err) {
+                console.error(err);
+                showStatus("Error de conexión al enviar el correo", 'error');
+            }
+            toggleLoading(false);
+        }
+    </script>
+</body>
+</html>
