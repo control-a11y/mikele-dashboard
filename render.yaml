@@ -1,0 +1,19 @@
+services:
+  - type: web
+    name: mikele-dashboard
+    runtime: python
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn app:app --host 0.0.0.0 --port $PORT
+    envVars:
+      - key: SUPABASE_URL
+        sync: false
+      - key: SUPABASE_KEY
+        sync: false
+      - key: EMAIL_USUARIO
+        sync: false
+      - key: EMAIL_PASSWORD
+        sync: false
+      - key: EMAIL_DESTINO
+        sync: false
+      - key: RENDER
+        value: "true"
