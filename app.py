@@ -57,7 +57,24 @@ UMBRAL_PERDIDA = 30
 UMBRAL_PRODUCCION = 2000
 
 def get_supabase_client() -> Client:
+    if not SUPABASE_URL or not SUPABASE_KEY:
+        raise HTTPException(
+            status_code=503,
+            detail="Variables de entorno SUPABASE_URL y SUPABASE_KEY no configuradas. Agrégalas en Render.com > Environment."
+        )
     return create_client(SUPABASE_URL, SUPABASE_KEY)
+
+@app.get("/api/health")
+def health_check():
+    """Endpoint de diagnóstico — muestra si las variables de entorno están configuradas."""
+    return {
+        "status": "running",
+        "supabase_url_set": bool(SUPABASE_URL),
+        "supabase_key_set": bool(SUPABASE_KEY),
+        "email_usuario_set": bool(EMAIL_USUARIO),
+        "email_password_set": bool(EMAIL_PASSWORD),
+        "render_env": os.getenv("RENDER", "false")
+    }
 
 def get_honduras_dates():
     # Honduras is UTC-6
@@ -184,13 +201,26 @@ def get_status():
 @app.post("/api/process")
 async def process_csv(file: UploadFile = File(...)):
     try:
-        # Read uploaded CSV file
+        # Read uploaded CSV file — try multiple encodings (Windows CSV files often use Latin-1)
         contents = await file.read()
-        df_ventas_raw = pd.read_csv(io.StringIO(contents.decode('utf-8')), sep=';')
+        df_ventas_raw = None
+        last_error = None
+        for encoding in ['utf-8-sig', 'utf-8', 'latin-1', 'windows-1252', 'cp1252']:
+            try:
+                df_ventas_raw = pd.read_csv(io.StringIO(contents.decode(encoding)), sep=';')
+                break
+            except (UnicodeDecodeError, Exception) as enc_err:
+                last_error = str(enc_err)
+                continue
+        if df_ventas_raw is None:
+            raise HTTPException(status_code=400, detail=f"No se pudo decodificar el CSV. Último error: {last_error}")
+        
         df_ventas_raw.columns = df_ventas_raw.columns.str.strip()
         
         if 'Artículo' in df_ventas_raw.columns:
             df_ventas_raw = df_ventas_raw.rename(columns={'Artículo': 'Articulo'})
+        elif 'Art\u00edculo' in df_ventas_raw.columns:
+            df_ventas_raw = df_ventas_raw.rename(columns={'Art\u00edculo': 'Articulo'})
             
         if 'Fecha' not in df_ventas_raw.columns:
             raise HTTPException(status_code=400, detail="El archivo CSV de ventas debe contener una columna 'Fecha'.")
