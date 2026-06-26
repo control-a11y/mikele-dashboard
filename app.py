@@ -162,7 +162,7 @@ def get_status():
         # Filter recent transferences for display
         transferences_list = []
         if not df_trans.empty:
-            df_trans['created_at'] = pd.to_datetime(df_trans['created_at'])
+            df_trans['created_at'] = pd.to_datetime(df_trans['created_at'], format="ISO8601")
             # Only show transferences of the last 3 days
             three_days_ago = datetime.now(timezone.utc) - timedelta(days=3)
             df_recent_trans = df_trans[df_trans['created_at'] >= three_days_ago]
