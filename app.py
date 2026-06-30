@@ -56,6 +56,57 @@ GELATO_COSTS = {
 UMBRAL_PERDIDA = 30
 UMBRAL_PRODUCCION = 2000
 
+def safe_float(value, default=0.0):
+    try:
+        if pd.isna(value):
+            return default
+        return float(value)
+    except (TypeError, ValueError):
+        return default
+
+def read_sales_csv(contents: bytes):
+    """Read CSV content robustly.
+    Tries multiple encodings and common separators, prioritising semicolon which is used
+    by the exported Block CSV. After loading, empty columns (e.g., the leading
+    unnamed column caused by a leading ';') are dropped. If only one column remains,
+    the function continues trying other separators.
+    """
+    last_error = None
+    encodings = ['utf-8-sig', 'utf-8', 'latin-1', 'windows-1252', 'cp1252']
+    # Prioritise semicolon, then comma, tab, and finally let pandas infer.
+    separators = [';', ',', '\t', None]
+    for encoding in encodings:
+        try:
+            decoded = contents.decode(encoding)
+        except UnicodeDecodeError as enc_err:
+            last_error = str(enc_err)
+            continue
+        for separator in separators:
+            try:
+                df = pd.read_csv(io.StringIO(decoded), sep=separator, engine='python')
+                # Remove completely empty columns (common with leading ';')
+                df = df.dropna(axis=1, how='all')
+                # If after dropping we still have more than one column, accept it.
+                if df.shape[1] > 1:
+                    df.columns = df.columns.str.strip()
+                    return df
+                # Otherwise keep trying other separators.
+                last_error = f"Only one column detected with separator {separator!r}"
+            except Exception as csv_err:
+                last_error = str(csv_err)
+    raise HTTPException(status_code=400, detail=f"No se pudo leer el CSV. Revisa que sea un archivo CSV valido exportado de Block. Último error: {last_error}")
+
+def find_column(df, candidates):
+    normalized = {
+        str(column).strip().lower().replace('.', '').replace(' ', '').replace('_', ''): column
+        for column in df.columns
+    }
+    for candidate in candidates:
+        key = candidate.strip().lower().replace('.', '').replace(' ', '').replace('_', '')
+        if key in normalized:
+            return normalized[key]
+    return None
+
 def get_supabase_client() -> Client:
     if not SUPABASE_URL or not SUPABASE_KEY:
         raise HTTPException(
@@ -167,14 +218,16 @@ def get_status():
             three_days_ago = datetime.now(timezone.utc) - timedelta(days=3)
             df_recent_trans = df_trans[df_trans['created_at'] >= three_days_ago]
             for _, row_t in df_recent_trans.iterrows():
-                tipo = "Envío Lab" if pd.notna(row_t.get('transferencia')) and row_t['transferencia'] else "Recepción Tienda"
-                cant = row_t.get('transferencia') or row_t.get('recepcion') or 0
+                transferencia = safe_float(row_t.get('transferencia'), None)
+                recepcion = safe_float(row_t.get('recepcion'), None)
+                tipo = "Envío Lab" if transferencia is not None and transferencia != 0 else "Recepción Tienda"
+                cant = transferencia if transferencia is not None else (recepcion if recepcion is not None else 0)
                 fecha_t = row_t['created_at'].strftime("%d/%m %H:%M")
                 transferences_list.append({
                     "id": row_t['id'],
                     "producto": row_t['producto'],
                     "tipo": tipo,
-                    "cantidad": float(cant),
+                    "cantidad": cant,
                     "estado": row_t['estado'],
                     "fecha": fecha_t,
                     "creado_por_rol": row_t['creado_por_rol']
@@ -203,42 +256,47 @@ async def process_csv(file: UploadFile = File(...)):
     try:
         # Read uploaded CSV file — try multiple encodings (Windows CSV files often use Latin-1)
         contents = await file.read()
-        df_ventas_raw = None
-        last_error = None
-        for encoding in ['utf-8-sig', 'utf-8', 'latin-1', 'windows-1252', 'cp1252']:
-            try:
-                df_ventas_raw = pd.read_csv(io.StringIO(contents.decode(encoding)), sep=';')
-                break
-            except (UnicodeDecodeError, Exception) as enc_err:
-                last_error = str(enc_err)
-                continue
-        if df_ventas_raw is None:
-            raise HTTPException(status_code=400, detail=f"No se pudo decodificar el CSV. Último error: {last_error}")
+        if not contents:
+            raise HTTPException(status_code=400, detail="El archivo CSV esta vacio.")
+
+        df_ventas_raw = read_sales_csv(contents)
         
         df_ventas_raw.columns = df_ventas_raw.columns.str.strip()
-        
-        if 'Artículo' in df_ventas_raw.columns:
-            df_ventas_raw = df_ventas_raw.rename(columns={'Artículo': 'Articulo'})
-        elif 'Art\u00edculo' in df_ventas_raw.columns:
-            df_ventas_raw = df_ventas_raw.rename(columns={'Art\u00edculo': 'Articulo'})
+
+        fecha_col = find_column(df_ventas_raw, ['Fecha', 'Date'])
+        articulo_col = find_column(df_ventas_raw, ['Articulo', 'Artículo', 'Art\u00edculo', 'Producto', 'Item'])
+        unidades_col = find_column(df_ventas_raw, ['Uds.V', 'Uds V', 'UdsV', 'Unidades', 'Cantidad'])
+        venta_col = find_column(df_ventas_raw, ['Venta', 'Neto', 'Total', 'Importe'])
+
+        if not fecha_col:
+            raise HTTPException(status_code=400, detail="El CSV no tiene la columna requerida: Fecha (o Date)")
+
+        rename_map = {fecha_col: 'Fecha'}
+        if articulo_col:
+            rename_map[articulo_col] = 'Articulo'
+        if unidades_col:
+            rename_map[unidades_col] = 'Uds.V'
+        if venta_col:
+            rename_map[venta_col] = 'Venta'
             
-        if 'Fecha' not in df_ventas_raw.columns:
-            raise HTTPException(status_code=400, detail="El archivo CSV de ventas debe contener una columna 'Fecha'.")
+        df_ventas_raw = df_ventas_raw.rename(columns=rename_map)
+
+        is_summary = False
+        if 'Articulo' not in df_ventas_raw.columns or 'Uds.V' not in df_ventas_raw.columns:
+            is_summary = True
+            if 'Articulo' not in df_ventas_raw.columns:
+                df_ventas_raw['Articulo'] = 'Desconocido'
+            if 'Uds.V' not in df_ventas_raw.columns:
+                df_ventas_raw['Uds.V'] = 0
             
         # Get unique date from CSV
-        unique_dates = df_ventas_raw['Fecha'].dropna().unique()
+        parsed_dates = pd.to_datetime(df_ventas_raw['Fecha'], dayfirst=True, errors='coerce')
+        unique_dates = parsed_dates.dropna().dt.strftime("%Y-%m-%d").unique()
         if len(unique_dates) == 0:
             raise HTTPException(status_code=400, detail="No se encontraron fechas válidas en el CSV.")
         
-        csv_date_str = str(unique_dates[0]) # e.g. "23/06/2026"
-        # Convert date to standard YYYY-MM-DD
-        try:
-            csv_date = datetime.strptime(csv_date_str, "%d/%m/%Y").strftime("%Y-%m-%d")
-        except Exception:
-            try:
-                csv_date = pd.to_datetime(csv_date_str).strftime("%Y-%m-%d")
-            except Exception:
-                raise HTTPException(status_code=400, detail=f"Formato de fecha de CSV inválido: {csv_date_str}. Debe ser DD/MM/YYYY.")
+        csv_date = str(unique_dates[0])
+        df_ventas_raw['_fecha_normalizada'] = parsed_dates.dt.strftime("%Y-%m-%d")
         
         # Connect to Supabase
         supabase = get_supabase_client()
@@ -268,7 +326,7 @@ async def process_csv(file: UploadFile = File(...)):
             raise HTTPException(status_code=400, detail=f"No hay registros de inventario final en Supabase para la fecha del reporte: {FECHA_ACTUAL}. Recuerda corregir el timezone si es necesario.")
             
         # Parse CSV sales
-        df_ventas = df_ventas_raw[df_ventas_raw["Fecha"] == csv_date_str].copy()
+        df_ventas = df_ventas_raw[df_ventas_raw["_fecha_normalizada"] == FECHA_ACTUAL].copy()
         df_ventas['Articulo'] = df_ventas['Articulo'].astype(str).str.strip()
         
         # Apply name normalization for Mandorla
@@ -369,6 +427,11 @@ async def process_csv(file: UploadFile = File(...)):
             })
             total_ventas_dinero += ingreso
             total_costo += costo
+            
+        # Fallback to total Venta (Neto) if detailed sizes are missing (Summary CSV)
+        if total_ventas_dinero == 0 and is_summary and 'Venta' in df_ventas.columns:
+            total_ventas_dinero = df_ventas['Venta'].sum()
+            total_costo = total_ventas_dinero * 0.25  # 25% average cost estimation
             
         margen = total_ventas_dinero - total_costo
         margen_pct = (margen / total_ventas_dinero * 100) if total_ventas_dinero > 0 else 0
@@ -782,6 +845,6 @@ def fix_dates():
 # Running app — supports local dev and Render.com (uses PORT env var)
 if __name__ == "__main__":
     import uvicorn
-    port = int(os.getenv("PORT", 8000))
+    port = int(os.getenv("PORT", 8080))
     host = "0.0.0.0" if os.getenv("RENDER") else "127.0.0.1"
     uvicorn.run(app, host=host, port=port)

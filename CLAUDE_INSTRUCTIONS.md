@@ -1,4 +1,4 @@
-﻿# 🍦 HELADERÍA MIKELE — Instrucciones Completas para Agente IA (Claude)
+# 🍦 HELADERÍA MIKELE — Instrucciones Completas para Agente IA (Claude)
 
 > Este documento contiene todo lo necesario para que Claude u otro agente de IA pueda continuar el desarrollo y mantenimiento del sistema de reportes de Heladería Mikele, sin necesidad de historial previo de conversación.
 
@@ -182,11 +182,17 @@ SPLENDA, TIBIO, BIEN CALIENTE, Pastel de Zanahoria, Cerveza Mikele
 ## 🚀 Cómo Correr Localmente
 
 ```bash
-cd "C:\Users\geisy\OneDrive\Desktop\MKL agents Antigravity"
+cd "c:\Users\geisy\Agentes IA\MKL agents Antigravity-20260629T170937Z-3-001\MKL agents Antigravity"
 pip install -r requirements.txt
 python app.py
-# Abrir: http://localhost:8000
+# Abrir: http://localhost:8080
 ```
+
+### 💻 Automatización e Inicio con Windows
+El proyecto cuenta con scripts para iniciar el dashboard y el backend automáticamente cuando arranca Windows sin requerir derechos de administrador:
+- **`iniciar_dashboard_mikele.bat`**: Script que levanta el entorno virtual, inicia el servidor en el puerto 8080 y abre el navegador automáticamente.
+- **`instalar_inicio_usuario.ps1`**: Script de PowerShell que añade un lanzador directo a la carpeta de Inicio (`Startup`) del usuario de Windows para que todo arranque al encender la PC.
+- **`desinstalar_inicio_usuario.ps1`**: Desactiva el arranque automático removiendo el lanzador.
 
 ---
 
@@ -194,20 +200,26 @@ python app.py
 
 ```
 1. Cierre del día: empleado registra inventario final → Supabase (InventarioDiario)
-2. Exportar CSV de ventas del sistema POS Block
-3. Abrir dashboard: https://mikele-dashboard.onrender.com
+2. Exportar CSV de ventas del sistema POS Block (puede ser Detalle o Resumen/Totales)
+3. Abrir dashboard: http://localhost:8080 (o la URL pública en Render)
 4. Subir/arrastrar el CSV al dashboard
-5. El sistema calcula y muestra el reporte
+5. El sistema calcula y muestra el reporte. Si es un CSV de resumen (sin sabores ni unidades), se muestra el consumo físico basándose en pesos y se mapea la venta total usando la columna "Neto" sin colapsar el dashboard.
 6. Clic en "Enviar Reporte" → correo llega a control@yoops.hn
 ```
 
 ---
 
-## ⚠️ Problema Conocido: Timezone Supabase
+## ⚠️ Configuración de Timezone (Honduras UTC-6)
 
-Si los registros de inventario aparecen con `fecha = hoy` siendo que se hicieron anoche:
-→ Llamar a `POST /api/fix-dates`
-→ Este endpoint mueve registros de `fecha_hoy` a `fecha_ayer` (en horario Honduras)
+La tabla `InventarioDiario` tiene configurada la columna `fecha` para tomar por defecto la fecha de Honduras. El comando SQL aplicado en el proyecto es:
+```sql
+ALTER TABLE "InventarioDiario" 
+ALTER COLUMN fecha SET DEFAULT (timezone('America/Tegucigalpa', now())::date);
+```
+Esto evita el desfase de +1 día que ocurría al insertar registros a altas horas de la noche.
+
+Si existiera un desfase puntual por algún registro manual, aún se puede invocar el endpoint de utilidad:
+→ `POST /api/fix-dates` (mueve registros de `fecha_hoy` a `fecha_ayer` en horario Honduras).
 
 ---
 
@@ -216,19 +228,19 @@ Si los registros de inventario aparecen con `fecha = hoy` siendo que se hicieron
 | Error | Causa | Solución |
 |-------|-------|----------|
 | `{"detail":"Not Found"}` | Render aún desplegando | Esperar 2-3 min |
-| `No hay registros de inventario` | Timezone incorrecto o aún no registrado | Llamar `/api/fix-dates` o esperar |
-| CSV no decodifica | Encoding especial | Guardar CSV como "UTF-8" desde Excel |
-| Render tarda 30-60 seg | Plan gratuito, servidor dormido | Es normal, esperar la primera petición |
+| `No hay registros de inventario` | Timezone incorrecto o aún no registrado | Asegurarse de que el inventario del día esté guardado o usar `/api/fix-dates` |
+| El dashboard da error al subir el CSV | Se está subiendo un archivo de Totales/Resumen | El sistema ya maneja este caso de forma automática mapeando el total de la columna "Neto" y marcando unidades como 0. Revisa la consola o logs del servidor. |
+| CSV no decodifica | Encoding especial | El backend soporta múltiples encodings de forma automática (latin-1, utf-8, windows-1252, etc.). Si persiste, verifica que sea un CSV válido de Block. |
 
 ---
 
 ## 💡 Comandos Git para Desplegar Cambios
 
 ```bash
-cd "C:\Users\geisy\OneDrive\Desktop\MKL agents Antigravity"
+cd "c:\Users\geisy\Agentes IA\MKL agents Antigravity-20260629T170937Z-3-001\MKL agents Antigravity"
 git add -A
 git commit -m "descripción del cambio"
-git push origin main
+git push origin master
 # Render.com hace auto-deploy automáticamente
 ```
 
@@ -238,7 +250,6 @@ git push origin main
 
 - [ ] Mejorar loading state en frontend cuando Render está dormido
 - [ ] Agregar gráfica de histórico de consumo por semana
-- [ ] Validación automática de timezone antes de procesar CSV
 - [ ] Agregar autenticación básica al dashboard
 - [ ] Exportar reporte a PDF
 - [ ] Historial de reportes enviados en el dashboard
@@ -250,7 +261,8 @@ git push origin main
 
 - **Negocio:** Heladería Mikele — Honduras
 - **Email de reportes:** control@yoops.hn
-- **Dashboard:** https://mikele-dashboard.onrender.com
+- **Dashboard Local:** http://localhost:8080
+- **Dashboard Producción:** https://mikele-dashboard.onrender.com
 - **Base de datos:** Supabase proyecto `Mikele_DB`
 - **Moneda:** Lempiras (L)
 - **Idioma del sistema:** Español

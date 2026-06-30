@@ -945,9 +945,15 @@
             if (files.length > 0) {
                 uploadCSV(files[0]);
             }
+            e.target.value = '';
         }
 
         async function uploadCSV(file) {
+            if (!file || !file.name.toLowerCase().endsWith('.csv')) {
+                showStatus("Selecciona un archivo CSV valido.", 'error');
+                return;
+            }
+
             toggleLoading(true, "Analizando ventas y consumos...");
             const formData = new FormData();
             formData.append("file", file);
@@ -959,8 +965,14 @@
                 });
                 
                 if (!response.ok) {
-                    const errDetail = await response.json();
-                    showStatus(errDetail.detail || "Error al procesar archivo", 'error');
+                    let detail = "Error al procesar archivo";
+                    try {
+                        const errDetail = await response.json();
+                        detail = errDetail.detail || detail;
+                    } catch (parseErr) {
+                        detail = await response.text();
+                    }
+                    showStatus(detail, 'error');
                     toggleLoading(false);
                     return;
                 }
@@ -1091,6 +1103,11 @@
 
         // Render ApexCharts
         function renderCharts(consumptionData, portionData) {
+            if (typeof ApexCharts === 'undefined') {
+                renderFallbackCharts(consumptionData, portionData);
+                return;
+            }
+
             // Filter flavours with positive consumption
             const validCons = consumptionData.filter(d => d.consumo > 0).slice(0, 10);
             
@@ -1180,6 +1197,48 @@
             };
             chart2 = new ApexCharts(document.querySelector("#chartPesoPromedio"), options2);
             chart2.render();
+        }
+
+        function renderFallbackCharts(consumptionData, portionData) {
+            const chartConsumo = document.querySelector("#chartConsumo");
+            const chartPeso = document.querySelector("#chartPesoPromedio");
+            chartConsumo.innerHTML = buildFallbackBars(
+                consumptionData
+                    .filter(d => d.consumo > 0)
+                    .slice(0, 10)
+                    .map(d => ({ label: d.sabor, value: Number((d.consumo / 1000).toFixed(2)), suffix: "kg" })),
+                "Consumo"
+            );
+            chartPeso.innerHTML = buildFallbackBars(
+                portionData.map(d => ({ label: d.sabor, value: Number(d.peso_promedio_g || 0), suffix: "g" })),
+                "Porcion"
+            );
+        }
+
+        function buildFallbackBars(items, labelPrefix) {
+            if (!items.length) {
+                return '<div style="color: var(--text-secondary); font-size: 13px; padding: 20px; text-align: center;">Sin datos para graficar.</div>';
+            }
+
+            const maxValue = Math.max(...items.map(item => item.value), 1);
+            return `
+                <div style="display:flex; flex-direction:column; gap:12px;">
+                    ${items.map(item => {
+                        const width = Math.max((item.value / maxValue) * 100, 4);
+                        return `
+                            <div>
+                                <div style="display:flex; justify-content:space-between; gap:12px; font-size:12px; margin-bottom:5px;">
+                                    <span style="color:var(--text-primary); overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${item.label}</span>
+                                    <strong>${item.value.toLocaleString()} ${item.suffix}</strong>
+                                </div>
+                                <div aria-label="${labelPrefix} ${item.label}" style="height:10px; background:var(--bg-card); border-radius:999px; overflow:hidden;">
+                                    <div style="width:${width}%; height:100%; background:linear-gradient(90deg, var(--accent-purple), var(--accent-blue));"></div>
+                                </div>
+                            </div>
+                        `;
+                    }).join('')}
+                </div>
+            `;
         }
 
         // Helper to get css variables in JS
